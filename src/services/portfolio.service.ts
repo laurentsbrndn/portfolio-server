@@ -14,19 +14,31 @@ export const getFullPortfolioData = async () => {
     certifications,
   ] = await Promise.all([
     prisma.profile.findFirst(),
-    prisma.education.findMany({ orderBy: { startDate: 'desc' } }),
-    prisma.workExperience.findMany({ orderBy: { startDate: 'desc' } }),
+    prisma.education.findMany({ 
+      orderBy: { displayOrder: 'asc' } 
+    }),
+    prisma.workExperience.findMany({ 
+      orderBy: { displayOrder: 'asc' } 
+    }),
     prisma.project.findMany({
       orderBy: { displayOrder: 'asc' },
       include: {
-        images: true,
+        images: { orderBy: { displayOrder: 'asc' } },
         skills: { include: { skill: true } },
       },
     }),
-    prisma.organizationExperience.findMany({ orderBy: { startDate: 'desc' } }),
-    prisma.skill.findMany({ orderBy: { displayOrder: 'asc' } }),
-    prisma.language.findMany({ orderBy: { displayOrder: 'asc' } }),
-    prisma.certification.findMany({ orderBy: { issueDate: 'desc' } }),
+    prisma.organizationExperience.findMany({ 
+      orderBy: { displayOrder: 'asc' } 
+    }),
+    prisma.skill.findMany({ 
+      orderBy: { displayOrder: 'asc' } 
+    }),
+    prisma.language.findMany({ 
+      orderBy: { displayOrder: 'asc' } 
+    }),
+    prisma.certification.findMany({ 
+      orderBy: { displayOrder: 'asc' } 
+    }),
   ]);
 
   return {
