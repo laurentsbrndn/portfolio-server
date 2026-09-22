@@ -24,7 +24,7 @@ model Profile {
   location    String?  @db.VarChar(100)
   githubUrl   String?  @map("github_url")
   linkedinUrl String?  @map("linkedin_url")
-  websiteUrl  String?  @map("website_url")
+  emailUrl  String?  @map("email_url")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
