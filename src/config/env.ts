@@ -1,36 +1,53 @@
-import 'dotenv/config'; // must run before anything reads process.env
+import 'dotenv/config';
 import { z } from 'zod';
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.coerce.number().int().positive().default(5000),
-  DATABASE_URL: z.string().min(1),
-  CLIENT_URL: z.string().min(1),
-  TRUST_PROXY: z.coerce.number().int().min(0).default(0),
+// Treat empty strings in .env (KEY=) as "not set"
+const optionalString = (schema: z.ZodString) =>
+  z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
 
-  SMTP_HOST: z.string().min(1).default('smtp.gmail.com'),
-  SMTP_PORT: z.coerce.number().int().positive().default(465),
-  SMTP_USER: z.string().min(1),
-  SMTP_PASS: z.string().min(1),
-  CONTACT_RECEIVER_EMAIL: z.string().email(),
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+    PORT: z.coerce.number().int().positive().default(5000),
+    DATABASE_URL: z.string().min(1),
+    CLIENT_URL: z.string().min(1),
+    TRUST_PROXY: z.coerce.number().int().min(0).default(0),
 
-  PORTFOLIO_CACHE_TTL: z.coerce.number().int().min(0).default(300),
-});
+    RESEND_API_KEY: z.string().min(1),
+    MAIL_FROM: z.string().min(1).default('Portfolio Contact <onboarding@resend.dev>'),
+    CONTACT_RECEIVER_EMAIL: z.string().email(),
+
+    UPSTASH_REDIS_REST_URL: optionalString(z.string().url()),
+    UPSTASH_REDIS_REST_TOKEN: optionalString(z.string().min(1)),
+
+    PORTFOLIO_CACHE_TTL: z.coerce.number().int().min(0).default(300),
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.NODE_ENV === 'production' &&
+      (!value.UPSTASH_REDIS_REST_URL || !value.UPSTASH_REDIS_REST_TOKEN)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['UPSTASH_REDIS_REST_URL'],
+        message: 'Upstash credentials are required in production (contact rate limiting).',
+      });
+    }
+  });
 
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error('❌ Invalid environment variables:');
-  for (const issue of parsed.error.issues) {
-    console.error(`   - ${issue.path.join('.')}: ${issue.message}`);
-  }
-  process.exit(1);
+  const details = parsed.error.issues
+    .map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
+    .join('\n');
+  // Throw instead of process.exit so serverless logs show the reason clearly
+  throw new Error(`Invalid environment variables:\n${details}`);
 }
 
 export const env = parsed.data;
 export const isProduction = env.NODE_ENV === 'production';
 
-/** Allowed CORS origins, normalized (trimmed, no trailing slash). */
 export const allowedOrigins = env.CLIENT_URL.split(',')
   .map((origin) => origin.trim().replace(/\/$/, ''))
   .filter(Boolean);

@@ -11,9 +11,10 @@ export const getPortfolio = async (
   try {
     const data = await portfolioService.getFullPortfolioData();
 
-    // Browser/CDN may reuse for 60s, then revalidate in the background.
-    // Express adds a weak ETag automatically, so unchanged data returns 304.
-    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    // Browser: 60s (max-age).
+    // Vercel CDN: 5 min (s-maxage), then serves stale while refreshing in the
+    // background for up to 1 day. Vercel strips s-maxage/SWR before the browser.
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
     sendResponse(res, HTTP_STATUS.OK, 'Portfolio data retrieved successfully.', data);
   } catch (error) {
     next(error);

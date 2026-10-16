@@ -6,6 +6,7 @@ import { contactSchema } from '../validators/contact.schema.js';
 
 const router = Router();
 
-router.post('/', contactRateLimiter, validateBody(contactSchema), handleContactForm);
+// Validate first, so invalid submissions don't consume the visitor's quota
+router.post('/', validateBody(contactSchema), contactRateLimiter, handleContactForm);
 
 export default router;

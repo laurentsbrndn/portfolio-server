@@ -1,4 +1,4 @@
-import { transporter } from '../config/mailer.js';
+import { resend } from '../config/mailer.js';
 import { env } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
@@ -25,24 +25,33 @@ const buildHtml = ({ name, email, subject, message }: ContactRequestBody): strin
   `;
 };
 
+const sendFailed = () =>
+  new AppError(
+    HTTP_STATUS.BAD_GATEWAY,
+    'Your message could not be sent right now. Please try again later.',
+  );
+
 export const sendContactEmail = async (payload: ContactRequestBody): Promise<void> => {
   const { name, email, subject, message } = payload;
 
+  let response: Awaited<ReturnType<typeof resend.emails.send>>;
   try {
-    await transporter.sendMail({
-      // Must be your own SMTP address (SPF/DMARC); the visitor goes in Reply-To
-      from: { name: `${name} via Portfolio`, address: env.SMTP_USER },
-      replyTo: { name, address: email },
+    response = await resend.emails.send({
+      from: env.MAIL_FROM,
       to: env.CONTACT_RECEIVER_EMAIL,
-      subject: `[Portfolio Contact] ${subject}`,
+      replyTo: email, // "Reply" in your inbox goes straight to the visitor
+      subject: `[Portfolio] ${subject} — from ${name}`,
       text: `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\n${message}`,
       html: buildHtml(payload),
     });
   } catch (error) {
-    console.error('Failed to send contact email:', error);
-    throw new AppError(
-      HTTP_STATUS.BAD_GATEWAY,
-      'Your message could not be sent right now. Please try again later.',
-    );
+    console.error('Resend request failed:', error);
+    throw sendFailed();
+  }
+
+  // The SDK returns API errors instead of throwing them
+  if (response.error) {
+    console.error('Resend rejected the email:', response.error);
+    throw sendFailed();
   }
 };
