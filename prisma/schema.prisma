@@ -24,9 +24,9 @@ model Profile {
   location    String?  @db.VarChar(100)
   githubUrl   String?  @map("github_url")
   linkedinUrl String?  @map("linkedin_url")
-  emailUrl  String?  @map("email_url")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  emailUrl    String?  @map("email_url")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("profile")
 }
@@ -42,7 +42,8 @@ model Education {
   gpa          Decimal?  @db.Decimal(3, 2)
   description  String?
   displayOrder Int       @default(0) @map("display_order")
-  createdAt    DateTime  @default(now()) @map("created_at")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("education")
 }
@@ -59,7 +60,8 @@ model WorkExperience {
   isCurrent      Boolean   @default(false) @map("is_current")
   description    String?
   displayOrder   Int       @default(0) @map("display_order")
-  createdAt      DateTime  @default(now()) @map("created_at")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("work_experience")
 }
@@ -77,7 +79,8 @@ model Project {
   startDate        DateTime?      @map("start_date") @db.Date
   endDate          DateTime?      @map("end_date") @db.Date
   displayOrder     Int            @default(0) @map("display_order")
-  createdAt        DateTime       @default(now()) @map("created_at")
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   images           ProjectImage[]
   skills           ProjectSkill[]
 
@@ -92,6 +95,8 @@ model ProjectImage {
   displayOrder Int     @default(0) @map("display_order")
   project      Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
+  // Postgres does not index foreign keys automatically
+  @@index([projectId])
   @@map("project_images")
 }
 
@@ -102,6 +107,8 @@ model Skill {
   proficiencyLevel String?        @map("proficiency_level") @db.VarChar(50)
   iconUrl          String?        @map("icon_url")
   displayOrder     Int            @default(0) @map("display_order")
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   projects         ProjectSkill[]
 
   @@map("skills")
@@ -113,7 +120,9 @@ model ProjectSkill {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   skill     Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
+  // Composite PK already covers lookups by projectId; this covers skillId
   @@id([projectId, skillId])
+  @@index([skillId])
   @@map("project_skills")
 }
 
@@ -126,16 +135,19 @@ model OrganizationExperience {
   isCurrent        Boolean   @default(false) @map("is_current")
   description      String?
   displayOrder     Int       @default(0) @map("display_order")
-  createdAt        DateTime  @default(now()) @map("created_at")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("organization_experience")
 }
 
 model Language {
-  id           String @id @default(uuid()) @db.Uuid
-  name         String @db.VarChar(50)
-  proficiency  String @db.VarChar(50)
-  displayOrder Int    @default(0) @map("display_order")
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @db.VarChar(50)
+  proficiency  String   @db.VarChar(50)
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("languages")
 }
@@ -150,7 +162,8 @@ model Certification {
   issueDate           DateTime  @map("issue_date") @db.Date
   expirationDate      DateTime? @map("expiration_date") @db.Date
   displayOrder        Int       @default(0) @map("display_order")
-  createdAt           DateTime  @default(now()) @map("created_at")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("certifications")
 }

@@ -1,12 +1,23 @@
 import nodemailer from 'nodemailer';
-import process from 'process';
+import { env } from './env.js';
 
+// Created once and reused for every email
 export const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: true,
+  host: env.SMTP_HOST,
+  port: env.SMTP_PORT,
+  secure: env.SMTP_PORT === 465, // 465 = implicit TLS, 587 = STARTTLS
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: env.SMTP_USER,
+    pass: env.SMTP_PASS,
   },
 });
+
+/** Checks SMTP credentials at startup. Logs instead of crashing the API. */
+export const verifyMailer = async (): Promise<void> => {
+  try {
+    await transporter.verify();
+    console.log('✅ SMTP connection ready');
+  } catch (error) {
+    console.error('⚠️  SMTP verification failed. Contact form will not work:', error);
+  }
+};

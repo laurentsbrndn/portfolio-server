@@ -1,15 +1,20 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import * as portfolioService from '../services/portfolio.service.js';
 import { sendResponse } from '../utils/apiResponse.js';
+import { HTTP_STATUS } from '../constants/httpStatus.js';
 
 export const getPortfolio = async (
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
-) => {
+  next: NextFunction,
+): Promise<void> => {
   try {
     const data = await portfolioService.getFullPortfolioData();
-    return sendResponse(res, 200, 'Data portofolio berhasil diambil', data);
+
+    // Browser/CDN may reuse for 60s, then revalidate in the background.
+    // Express adds a weak ETag automatically, so unchanged data returns 304.
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    sendResponse(res, HTTP_STATUS.OK, 'Portfolio data retrieved successfully.', data);
   } catch (error) {
     next(error);
   }
